@@ -160,3 +160,5 @@ This function has the next steps for solving the task:
 #### 3.2.5 Envelope Computation
 #### 3.2.6 Peak Detection
 #### 3.2.7 Plotting
+
+![singal_evelope_and_peaks](https://github.com/user-attachments/assets/148c59c6-18e2-4956-825a-18b159089654)
