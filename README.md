@@ -249,6 +249,8 @@ This function has the next steps for solving the task:
 #### 4.2.3 Reconstruct the Signal
 #### 4.2.4 Plot the Residuals
 
+![Screenshot 2025-01-02 163841](https://github.com/user-attachments/assets/2d8af1a2-c2c5-45e8-8e46-6d5a754ff2e4)
+
 ## 5. Task 5
 
 > The spectrogram is represented.
@@ -297,3 +299,6 @@ This function has the next steps for solving the task:
 #### 5.2.1 Load the Audio Data
 #### 5.2.2 Compute the Spectrogram
 #### 5.2.3 Plot the Spectrogram
+
+![Screenshot 2025-01-02 164537](https://github.com/user-attachments/assets/fa50470a-8785-407c-aca5-c824ca38acf5)
+
