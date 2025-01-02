@@ -1,6 +1,8 @@
 import wave
 import numpy as np
 import simpleaudio as sa
+import matplotlib.pyplot as plt
+from scipy.signal import find_peaks, hilbert
 
 class AudioProcessor:
     def __init__(self, input_file):
@@ -33,75 +35,86 @@ class AudioProcessor:
         print(f"Trimmed audio saved as '{output_file}'.")
         self.trimmed_file = output_file
 
-    def make_one_second_audio(self, output_file):
+    def play_audio(self):
         """
-        Ensures the audio signal is exactly one second long.
+        Plays the trimmed audio file asynchronously.
         """
         if not hasattr(self, 'trimmed_file'):
             raise ValueError("Trimmed audio not created. Run `trim_audio` first.")
 
         with wave.open(self.trimmed_file, 'rb') as wav:
-            # Get audio parameters
-            params = wav.getparams()
-            framerate = params.framerate
-            n_channels = params.nchannels
-            sampwidth = params.sampwidth
-
-            # Read all frames
-            frames = wav.readframes(wav.getnframes())
-            audio_data = np.frombuffer(frames, dtype=np.int16)
-
-            # Determine length of one second in samples
-            one_second_frames = framerate * n_channels
-
-            # Adjust audio to be exactly one second
-            if len(audio_data) > one_second_frames:
-                # Trim to one second
-                audio_data = audio_data[:one_second_frames]
-            elif len(audio_data) < one_second_frames:
-                # Repeat to fill one second
-                repeat_count = one_second_frames // len(audio_data)
-                remainder = one_second_frames % len(audio_data)
-                audio_data = np.tile(audio_data, repeat_count)
-                audio_data = np.append(audio_data, audio_data[:remainder])
-
-            # Convert back to bytes
-            output_frames = audio_data.tobytes()
-
-            # Write to a new file
-            with wave.open(output_file, 'wb') as one_sec_wav:
-                one_sec_wav.setparams(params)
-                one_sec_wav.writeframes(output_frames)
-
-        print(f"One-second audio saved as '{output_file}'.")
-        self.one_second_file = output_file
-
-    def play_audio(self):
-        """
-        Plays the one-second audio file.
-        """
-        if not hasattr(self, 'one_second_file'):
-            raise ValueError("One-second audio not created. Run `make_one_second_audio` first.")
-
-        with wave.open(self.one_second_file, 'rb') as wav:
             # Extract audio parameters and data
             params = wav.getparams()
             frames = wav.readframes(params.nframes)
 
-        # Play audio using simpleaudio
+        # Play audio asynchronously
         play_obj = sa.play_buffer(frames, num_channels=params.nchannels, bytes_per_sample=params.sampwidth, sample_rate=params.framerate)
-        play_obj.wait_done()  # Wait for playback to finish
+
+
+    def plot_envelope_and_detect_peaks(self, input_file):
+        """
+        Plots the signal envelope and detects peaks with corresponding time points.
+        """
+
+        if not hasattr(self, 'trimmed_file'):
+            raise ValueError("Trimmed audio not created. Run `trim_audio` first.")
+
+        # Read audio data
+        with wave.open(input_file, 'rb') as wav:
+            params = wav.getparams()
+            framerate = params.framerate
+            frames = wav.readframes(params.nframes)
+            audio_data = np.frombuffer(frames, dtype=np.int16)
+
+        if audio_data.size == 0:
+            print("Error: Audio data is empty.")
+            return
+
+        print(f"Audio data loaded successfully. Length: {len(audio_data)} samples")
+        print(f"Sample rate: {framerate} Hz")
+
+        # Calculate time axis
+        time_axis = np.linspace(0, len(audio_data) / framerate, num=len(audio_data))
+
+        # Compute absolute value of the signal
+        abs_signal = np.abs(audio_data)
+
+        # Smooth the envelope with a moving average
+        window_size = int(framerate * 0.01)  # 10ms window
+        envelope = np.convolve(abs_signal, np.ones(window_size) / window_size, mode='same')
+
+        # Detect peaks in the smoothed envelope
+        peaks, _ = find_peaks(envelope, height=np.max(envelope) * 0.5)
+        peak_times = time_axis[peaks]
+
+        print(f"Number of peaks detected: {len(peaks)}")
+        
+        #if len(peaks) > 0:
+        #    print(f"Peak times (s): {peak_times}")
+
+        # Plot the results
+        plt.figure(figsize=(10, 6))
+        plt.plot(time_axis, audio_data, label="Audio Signal", alpha=0.6)
+        plt.plot(time_axis, envelope, label="Smoothed Envelope", color='red', linewidth=2)
+        plt.scatter(peak_times, envelope[peaks], color='green', label="Peaks", zorder=3)
+        plt.title("Signal Envelope and Peaks")
+        plt.xlabel("Time (seconds)")
+        plt.ylabel("Amplitude")
+        plt.legend()
+        plt.grid(True)
+        print("Displaying plot...")
+        plt.show()
+
 
 
 if __name__ == "__main__":
     input_wav = "wav13.wav"
-    trimmed_wav = "trimmed_audio.wav"
-    one_second_wav = "one_second_audio.wav"
+    trimmed_wav = "one_second_audio.wav"
 
     # Create an instance of the class
     audio_processor = AudioProcessor(input_wav)
 
     # Perform the tasks
     audio_processor.trim_audio(trimmed_wav, 2, 3)  # Task 1
-    audio_processor.make_one_second_audio(one_second_wav)  # Task 2
-    audio_processor.play_audio()  # Play the one-second audio
+    #audio_processor.play_audio()  # Task 2
+    audio_processor.plot_envelope_and_detect_peaks(trimmed_wav)  # Task 3
